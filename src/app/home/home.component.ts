@@ -10,6 +10,9 @@ import {
   tap,
 } from "rxjs/operators";
 import { createHttpObservable } from "../common/util";
+import { getAlternateCourses } from "../common/helper";
+import { anotherHttpHelper } from "../common/anotherHttpService";
+import { yetAnotherCourseGetter } from "../common/yetAnotherHelper";
 
 @Component({
   selector: "home",
@@ -18,21 +21,24 @@ import { createHttpObservable } from "../common/util";
   standalone: false,
 })
 export class HomeComponent implements OnInit {
-  beginnerCourses: Course[];
-  advancedCourses: Course[];
+  beginnerCourses$: Observable<Course[]>;
+  advancedCourses$: Observable<Course[]>;
 
   constructor() {}
 
   ngOnInit() {
-    const http$ = createHttpObservable("/api/courses");
-    const courses$ = http$.pipe(map<any,Course[]>((res) => Object.values(res["payload"])));
-    const sub = courses$.subscribe(
-      (courses) => {
-        this.beginnerCourses = courses.filter(course => course.category === 'BEGINNER');
-        this.advancedCourses = courses.filter(course => course.category === 'ADVANCED');
-      },
-      (err) => noop,
-      () => console.log(`completed courses retrieval`)
+    const http$ = yetAnotherCourseGetter('/api/courses');
+    const courses$ = http$.pipe(
+      tap(() => console.log(`just made a call to the http`)),
+      map(result => Object.values(result['payload'])),
+      shareReplay()
+    )
+
+    this.beginnerCourses$ = courses$.pipe(
+      map<any, Course[]>(courses => courses.filter(c => c.category === 'BEGINNER'))
     );
+    this.advancedCourses$ = courses$.pipe(
+      map<any, Course[]>(courses => courses.filter(c => c.category === 'ADVANCED'))
+    );    
   }
 }
