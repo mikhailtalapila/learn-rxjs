@@ -1,44 +1,27 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
-import { response } from 'express';
-import { fromEvent, interval, noop, Observable, timer } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { Component, inject, OnInit, ViewEncapsulation } from "@angular/core";
+import { response } from "express";
+import { fromEvent, interval, noop, Observable, timer } from "rxjs";
+import { map, take } from "rxjs/operators";
+import { createHttpObservable } from "../common/util";
 
 @Component({
-    selector: 'about',
-    templateUrl: './about.component.html',
-    styleUrls: ['./about.component.css'],
-    standalone: false
+  selector: "about",
+  templateUrl: "./about.component.html",
+  styleUrls: ["./about.component.css"],
+  standalone: false,
 })
 export class AboutComponent implements OnInit {
-
-  constructor() { }
-
+  constructor() {}
   ngOnInit() {
-    const http$ = new Observable(observer => {
-      fetch('/api/courses')
-      .then(
-        response => {
-          return response.json();
-        }
-      )
-      .then(body => {
-        observer.next(body);
-        observer.complete();
-      })
-      .catch(err => {
-        observer.error(err)
-      })
-    })
+    const http$ = createHttpObservable('/api/courses');
+    const courses$ = http$.pipe(
+      map(res => Object.values(res['payload']))
+    )
 
-    http$.subscribe(val => {
-      console.log(`values: `, val);
-
-    })
-
-    const interval$ = interval(3000)
-    const someNumber = interval$.pipe(take(4));
-    someNumber.subscribe(x => console.log(x));
-
+    const sub = courses$.subscribe(res => {
+      console.log(`courses: `, res);
+    }, 
+      err => noop
+    )
   }
-
 }
