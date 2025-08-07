@@ -3,8 +3,8 @@ import { MAT_DIALOG_DATA, MatDialogRef } from "@angular/material/dialog";
 import {Course} from "../model/course";
 import {FormBuilder, Validators, FormGroup} from "@angular/forms";
 import moment from 'moment';
-import {fromEvent} from 'rxjs';
-import {concatMap, distinctUntilChanged, exhaustMap, filter, mergeMap} from 'rxjs/operators';
+import {fromEvent, Observable} from 'rxjs';
+import {concatMap, distinctUntilChanged, exhaustMap, filter, map, mergeMap} from 'rxjs/operators';
 import {fromPromise} from 'rxjs/internal-compatibility';
 
 @Component({
@@ -40,20 +40,29 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
 
     ngOnInit() {
         this.form.valueChanges.pipe(
-            filter(() => this.form.valid)
-        ).subscribe((changes) => {
-            const coursesUpdate$ = fromPromise(
-                fetch(`/api/courses/${this.course.id}`, {
-                    method: 'PUT', 
-                    body: JSON.stringify(changes),
-                    headers: {
-                        'content-type': 'application/json'
-                    }
-                })
-            )
-            coursesUpdate$.subscribe();
-        })
+            filter(()=> this.form.valid),
+            concatMap((changes) => this.sameFuctionUpdatingCourseGettingObservable(changes))
+        ).subscribe();
     }
+
+    updateCourse(changes): Observable<any> {
+        return fromPromise(
+            fetch(`/api/courses/${this.course.id}`, {
+                method: 'PUT', 
+                body: JSON.stringify(changes),
+                headers: {
+                    'content-type': 'application/json'
+                }
+            })
+        )
+    }
+
+
+
+
+
+
+
 
 
 
@@ -62,7 +71,17 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
 
     }
 
-
+    sameFuctionUpdatingCourseGettingObservable(changes) {
+        return fromPromise(
+            fetch(`/api/courses/${this.course.id}`, {
+                method: 'PUT',
+                body: JSON.stringify(changes),
+                headers: {
+                    'content-type': 'application/json'
+                }
+            })
+        )
+    }
 
     close() {
         this.dialogRef.close();
