@@ -4,7 +4,7 @@ import {Course} from "../model/course";
 import {FormBuilder, Validators, FormGroup} from "@angular/forms";
 import moment from 'moment';
 import {fromEvent, Observable} from 'rxjs';
-import {concatMap, distinctUntilChanged, exhaustMap, filter, map, mergeMap} from 'rxjs/operators';
+import {concatMap, distinctUntilChanged, exhaustMap, filter, map, mergeMap, tap} from 'rxjs/operators';
 import {fromPromise} from 'rxjs/internal-compatibility';
 
 @Component({
@@ -18,9 +18,9 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
     form: FormGroup;
     course:Course;
 
-    @ViewChild('saveButton', { static: true }) saveButton: ElementRef;
+    @ViewChild('saveButton', { static: false }) saveButton: ElementRef;
 
-    @ViewChild('searchInput', { static: true }) searchInput : ElementRef;
+    @ViewChild('searchInput', { static: false }) searchInput : ElementRef;
 
     constructor(
         private fb: FormBuilder,
@@ -40,47 +40,32 @@ export class CourseDialogComponent implements OnInit, AfterViewInit {
 
     ngOnInit() {
         this.form.valueChanges.pipe(
-            filter(()=> this.form.valid),
-            concatMap((changes) => this.sameFuctionUpdatingCourseGettingObservable(changes))
+            filter(() => this.form.valid),
+            mergeMap(changes => this.updateCourse(changes))
         ).subscribe();
     }
 
-    updateCourse(changes): Observable<any> {
-        return fromPromise(
-            fetch(`/api/courses/${this.course.id}`, {
-                method: 'PUT', 
-                body: JSON.stringify(changes),
-                headers: {
-                    'content-type': 'application/json'
-                }
-            })
-        )
-    }
-
-
-
-
-
-
-
-
-
-
     ngAfterViewInit() {
-
+            fromEvent(this.saveButton.nativeElement, 'click')
+            .pipe(
+                tap(()=> console.log(`clicked`)),
+                concatMap(() => this.updateCourse(this.form.value))
+            ).subscribe();
+        
 
     }
 
-    sameFuctionUpdatingCourseGettingObservable(changes) {
-        return fromPromise(
-            fetch(`/api/courses/${this.course.id}`, {
-                method: 'PUT',
-                body: JSON.stringify(changes),
-                headers: {
-                    'content-type': 'application/json'
-                }
-            })
-        )
+    updateCourse(changes) {
+                const update$ = fromPromise(
+                    fetch(`/api/courses/${this.course.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(changes),
+                        headers: {
+                            'content-type':'application/json'
+                        }
+                    })
+                )
+                return update$
     }
 
     close() {
